@@ -1,57 +1,159 @@
 #!/bin/bash --login
 
+usage()
+{
+cat << EOF
+usage: $0 options OLD_DOMAIN NEW_DOMAIN
+
+Copies a WordPress site (including db) from one domain to another
+OLD_DOMAIN - Existing site to copy
+NEW_DOMAIN - Site to overwrite with the copy
+
+OPTIONS:
+   -h                   Show this message
+   --artifactdir=PATH   Place to put backups and migration artifacts. Defaults to working directory.
+   --oldsitedir=PATH    Server address. Defaults to '~/domains/OLD_DOMAIN/html'
+   --newsitedir=PATH    Server root password. Defaults to '~/domains/NEW_DOMAIN/html'
+EOF
+}
+
+quiet=0
+artifact_dir="./"
+oldsite_dir=""
+newsite_dir=""
+
+while :
+do
+    case $1 in
+        -h | --help | -\? )
+            usage
+            exit 0
+            ;;
+        --artifactdir=*)
+            eval artifact_dir=${1#*=}
+            if [[ ! -d "$artifact_dir" ]]; then
+                echo "Artifact directory doesn't exist: '$artifact_dir'" >&2
+                exit 1
+            fi
+            shift
+            ;;
+        --oldsitedir=*)
+            eval oldsite_dir=${1#*=}
+            
+            # Make sure old site directory exists
+            if [[ ! -d "$oldsite_dir" ]]; then
+                echo "Old site directory doesn't exist: '$oldsite_dir'" >&2
+                exit 1
+            fi
+            
+            # Make sure old site directory has a wp-config.php file
+            if [[ ! -e "$oldsite_dir/wp-config.php" ]]; then
+                echo "Old site directory doesn't appear to be a WordPress site: '$oldsite_dir'" >&2
+                exit 1
+            fi
+            shift
+            ;;
+        --newsitedir=*)
+            eval newsite_dir=${1#*=}
+            
+            # Make sure new site directory exists
+            if [[ ! -d "$newsite_dir" ]]; then
+                echo "New site directory doesn't exist: '$newsite_dir'" >&2
+                exit 1
+            fi
+            
+            # Make sure new site directory has a wp-config.php file
+            if [[ ! -e "$newsite_dir/wp-config.php" ]]; then
+                echo "New site directory doesn't appear to be a WordPress site: '$newsite_dir'" >&2
+                exit 1
+            fi
+            
+            shift
+            ;;
+        --) # End of all options
+            shift
+            break
+            ;;
+        -*) # Unknown option
+            echo "WARN: Unknown option (ignored): $1" >&2
+            shift
+            ;;
+        *)  # No more options. Stop while loop
+            break
+            ;;
+    esac
+done
+
 bin_dir=$(dirname $0)
 if [[ "$#" != "2" ]]; then
-    echo "Usage: '$bin_dir/sitecopy.sh OLD_DOMAIN NEW_DOMAIN'"
+    usage
     exit 1
 fi
 
-TMP_DIR="~/tmp"
-if [[ -d "$TMP_DIR" ]]; then
-    mkdir $TMP_DIR
-    if [[ -d "$TMP_DIR" ]]; then
-        echo "Unable to create temp directory '$TMP_DIR'" 1>&2
-        exit 1
-    fi
+#
+# Setup artifact directory for this run
+#
+if [[ ! -d $artifact_dir ]]; then
+    echo "Artifact directory does not exist '$artifact_dir'" 1>&2
+    exit 1
 fi
+# Add a directory in the artifact directory for this run
 timestamp=`date +%Y%m%d%H%M%S`
-TMP_DIR="$TMP_DIR/$timestamp"
-mkdir $TMP_DIR
+artifact_dir="$artifact_dir/$timestamp"
+mkdir $artifact_dir
+if [[ ! -d $artifact_dir ]]; then
+    echo "Could not create artifact directory for this run '$artifact_dir'" 1>&2
+    exit 1
+fi
 
+# domains to work with
 old_domain=$1
 new_domain=$2
 
+# If site web root directories weren't set, set to MediaTemple defaults
+if [[ "$oldsite_dir" -eq "" ]]; then
+    oldsite_dir="$HOME/domains/$old_domain/html"
+fi
+
+# If site web root directories weren't set, set to MediaTemple defaults
+if [[ "$newsite_dir" -eq "" ]]; then
+    newsite_dir="$HOME/domains/$new_domain/html"
+fi
+
 # Backup site to overwrite
 echo "Backing up $new_domain..."
-tar cf $TMP_DIR/$new_domain.tar --directory ~/domains/$new_domain html
-$bin_dir/wpdbdump.sh ~/domains/$new_domain/html/wp-config.php >  $TMP_DIR/$new_domain.dbdump.sql
-tar uf $TMP_DIR/$new_domain.tar --directory $TMP_DIR $new_domain.dbdump.sql
-gzip -f $TMP_DIR/$new_domain.tar
-rm $TMP_DIR/$new_domain.dbdump.sql
+tar cf $artifact_dir/$new_domain.tar --directory $newsite_dir .
+# Create a backup of the database we're going to overwrite
+$bin_dir/wpdbdump.sh $newsite_dir/wp-config.php >  $artifact_dir/$new_domain.dbdump.sql
+
+tar uf $artifact_dir/$new_domain.tar --directory $artifact_dir $new_domain.dbdump.sql
+gzip -f $artifact_dir/$new_domain.tar
+rm $artifact_dir/$new_domain.dbdump.sql
 
 # Create archive of site to copy
 echo "Creating $old_domain archive..."
-tar cf $TMP_DIR/$old_domain.tar --directory ~/domains/$old_domain html
+tar cf $artifact_dir/$old_domain.tar --directory $oldsite_dir .
 
 # Create db dump of site to copy
 echo "Dumping $old_domain db..."
-$bin_dir/wpdbdump.sh ~/domains/$old_domain/html/wp-config.php >  $TMP_DIR/$old_domain.dbdump.sql
-cp $TMP_DIR/$old_domain.dbdump.sql $TMP_DIR/$new_domain.new.sql
+$bin_dir/wpdbdump.sh $oldsite_dir/wp-config.php >  $artifact_dir/$old_domain.dbdump.sql
+cp $artifact_dir/$old_domain.dbdump.sql $artifact_dir/$new_domain.new.sql
 # switch db table prefixes to new domains prefix
-old_domain_prefix=`cat ~/domains/$old_domain/html/wp-config.php | grep table_prefix | cut -d \' -f 2 | sed 's/[]\/()$*.^|[]/\\\\&/g'`
-new_domain_prefix=`cat ~/domains/$new_domain/html/wp-config.php | grep table_prefix | cut -d \' -f 2 | sed 's/[\/&]/\\\\&/g'`
-sed -i s/$old_domain_prefix/$new_domain_prefix/g $TMP_DIR/$new_domain.new.sql
+old_domain_prefix=$(cat $oldsite_dir/wp-config.php | grep table_prefix | cut -d \' -f 2 | sed 's/[]\/()$*.^|[]/\\\\&/g')
+new_domain_prefix=$(cat $newsite_dir/wp-config.php | grep table_prefix | cut -d \' -f 2 | sed 's/[\/&]/\\\\&/g')
+sed -i s/$old_domain_prefix/$new_domain_prefix/g $artifact_dir/$new_domain.new.sql
 
-# Replace copied site's wp-config.php file with old site's
-tar rf $TMP_DIR/$old_domain.tar --directory ~/domains/$new_domain html/wp-config.php
+# Preserve the new site's wp-config.php file
+cp $newsite_dir/wp-config.php $artifact_dir/$new_domain.wp-config.php
 
 # Move copied site into place
 echo "Overwrite $new_domain with $old_domain's code (except for wp-config.php)..."
-rm -rf ~/domains/$new_domain/html
-tar xf $TMP_DIR/$old_domain.tar --directory ~/domains/$new_domain
+rm -rf $newsite_dir/*
+tar xf $artifact_dir/$old_domain.tar --directory $newsite_dir
+cp $artifact_dir/$new_domain.wp-config.php $newsite_dir/wp-config.php
 
 # Update new domain's db
 echo "Overwrite $new_domain's db with copy of $old_domain's (with $old_domain references replaced)..."
-$bin_dir/wpdbclear.sh $old_domain $new_domain ~/domains/$new_domain/html/wp-config.php $TMP_DIR/$new_domain.new.sql
+$bin_dir/wpdbclear.sh $old_domain $new_domain $newsite_dir/wp-config.php $artifact_dir/$new_domain.new.sql
 
 echo "DONE! Try loading $new_domain in your browser"

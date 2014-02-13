@@ -12,14 +12,14 @@ if [[ ! -f $1 ]]; then
 fi
 
 # Pull db credential out of wp-config.php file
-db_name=`$bin_dir/wpdbgetcred.sh $1 name`
-db_user=`$bin_dir/wpdbgetcred.sh $1 user`
-db_pass=`$bin_dir/wpdbgetcred.sh $1 password`
-db_host=`$bin_dir/wpdbgetcred.sh $1 host`
+db_name=$($bin_dir/wpdbgetcred.sh $1 name)
+db_user=$($bin_dir/wpdbgetcred.sh $1 user)
+db_pass=$($bin_dir/wpdbgetcred.sh $1 password)
+db_host=$($bin_dir/wpdbgetcred.sh $1 host)
 
 # Only dump the tables with the correct prefix
-table_prefix=`cat $1 | grep table_prefix | cut -d \' -f 2`
-tables=`mysql -h $db_host -u $db_user -p$db_pass $db_name --silent -e "show tables like '$table_prefix%'"`
+table_prefix=$(cat $1 | grep table_prefix | cut -d \' -f 2)
+tables=$(mysql -h $db_host -u $db_user -p"$db_pass" $db_name --silent -e "show tables like '$table_prefix%'")
 
 # dump the db to standard out
-mysqldump --single-transaction -u $db_user -p$db_pass -h $db_host $db_name --tables $tables
+mysqldump --single-transaction -u $db_user -p"$db_pass" -h $db_host $db_name --tables $tables

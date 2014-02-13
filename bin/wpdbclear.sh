@@ -28,11 +28,11 @@ db_pass=`$bin_dir/wpdbgetcred.sh $wp_config_path password`
 db_host=`$bin_dir/wpdbgetcred.sh $wp_config_path host`
 
 # nuke old db and replace with empty new one
-mysql -u $db_user -p$db_pass -h $db_host $db_name -e "drop database $db_name; create database $db_name;"
+mysql -u $db_user -p"$db_pass" -h $db_host $db_name -e "drop database $db_name; create database $db_name;"
 echo "Deleted $db_name and recreated it!"
 
 # import new database
-mysql -u $db_user -p$db_pass -h $db_host $db_name < $db_to_import_path
+mysql -u $db_user -p"$db_pass" -h $db_host $db_name < $db_to_import_path
 
 # Fix the urls
-$bin_dir/search-replace-db/srdb.cli.php -u $db_user -p$db_pass -h $db_host -n $db_name -s $escaped_old_domain -r $escaped_new_domain
+$bin_dir/search-replace-db/srdb.cli.php -u $db_user -p"$db_pass" -h $db_host -n $db_name -s $escaped_old_domain -r $escaped_new_domain

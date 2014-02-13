@@ -13,19 +13,19 @@ if [[ ! -f $1 ]]; then
 fi
 
 if [[ "$2" == "database" ]] || [[ "$2" == "name" ]]; then
-    echo -n `cat $1 | grep DB_NAME | cut -d \' -f 4`
+    echo -n $(cat $1 | grep DB_NAME | cut -d \' -f 4)
     exit 0
 elif [[ "$2" == "user" ]]; then
-    echo -n `cat $1 | grep DB_USER | cut -d \' -f 4`
+    echo -n $(cat $1 | grep DB_USER | cut -d \' -f 4)
     exit 0
 elif [[ "$2" == "password" ]]; then
-    echo -n `cat $1 | grep DB_PASSWORD | cut -d \' -f 4`
+    echo -n $(cat $1 | grep DB_PASSWORD | cut -d \' -f 4)
     exit 0
 elif [[ "$2" == "host" ]]; then
-    raw_host=`cat $1 | grep DB_HOST | cut -d \' -f 4`
+    raw_host=$(cat $1 | grep DB_HOST | cut -d \' -f 4)
     # Not a string, let's try an ENV variable
     if [[ $raw_host == "" ]]; then
-        trimmed_host=`cat $1 | grep DB_HOST | cut -d \{ -f 2 | cut -d \} -f 1`
+        trimmed_host=$(cat $1 | grep DB_HOST | cut -d \{ -f 2 | cut -d \} -f 1)
         echo -n ${!trimmed_host}
     else
         echo -n $raw_host
