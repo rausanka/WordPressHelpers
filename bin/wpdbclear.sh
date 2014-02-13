@@ -1,8 +1,15 @@
 #!/bin/bash --login
 
+usage()
+{
+cat << EOF
+usage: $0 OLD_DOMAIN NEW_DOMAIN PATH_TO_WP_CONFIG_FILE PATH_TO_DUMPED_DB_FILE
+EOF
+}
+
 bin_dir=$(dirname $0)
 if [[ "$#" != "4" ]]; then
-    echo "Usage: '$bin_dir/wpdboverwrite.sh OLD_DOMAIN NEW_DOMAIN PATH_TO_WP_CONFIG_FILE PATH_TO_DUMPED_DB_FILE'"
+    usage
     exit 1
 fi
 
@@ -15,7 +22,6 @@ if [[ ! -f $4 ]]; then
     echo "File does not exist: '$4'"
     exit 1
 fi
-
 
 escaped_old_domain=$(echo $1 | sed 's/[]\/()$*.^|[]/\\\\&/g')
 escaped_new_domain=$(echo $2 | sed 's/[\/&]/\\\\&/g')
