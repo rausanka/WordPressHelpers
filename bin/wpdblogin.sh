@@ -13,9 +13,9 @@ if [[ ! -f $1 ]]; then
 fi
 
 # Pull db credential out of wp-config.php file
-db_name=$($bin_dir/wpdbgetcred.sh $1 name)
-db_user=$($bin_dir/wpdbgetcred.sh $1 user)
-db_pass=$($bin_dir/wpdbgetcred.sh $1 password)
-db_host=$($bin_dir/wpdbgetcred.sh $1 host)
+db_name=$($bin_dir/wpdbgetcred.sh $1 name) || exit $?
+db_user=$($bin_dir/wpdbgetcred.sh $1 user) || exit $?
+db_pass=$($bin_dir/wpdbgetcred.sh $1 password) || exit $?
+db_host=$($bin_dir/wpdbgetcred.sh $1 host) || exit $?
 
-mysql -u $db_user -p"$db_pass" -h $db_host $db_name
+mysql -u $db_user -p"$db_pass" -h $db_host $db_name || exit $?
