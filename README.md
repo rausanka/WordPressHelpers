@@ -19,6 +19,7 @@ Options:
 ```
 
 What `sitecopy.sh` does:
+
 1. Creates a directory for artifacts (uses the current timestamp - YYYYmmddHHMMSS)
 2. Backs up up the site to overwrite into the artifacts directory (new_domain)
   3. `tar`s the web root directory
