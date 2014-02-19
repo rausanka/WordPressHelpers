@@ -150,6 +150,12 @@ cp $newsite_dir/wp-config.php $artifact_dir/$new_domain.wp-config.php || exit $?
 echo "Overwrite $new_domain with $old_domain's code (except for wp-config.php)..."
 rm -rf $newsite_dir/* || exit $?
 tar xf $artifact_dir/$old_domain.tar --directory $newsite_dir || exit $?
+# Remove old site backups and log files
+rm -f $newsite_dir/wp-content/updraft/log.* $newsite_dir/wp-content/updraft/backup*
+escaped_old_domain=$(echo $old_domain | sed 's/[]\/()$*.^|[]/\\\\&/g')
+escaped_new_domain=$(echo $new_domain | sed 's/[\/&]/\\\\&/g')
+# Replace all references in site files (non db) to old domain with new domain
+grep -RZl "$old_domain" $newsite_dir | xargs -0 sed -i s/$escaped_old_domain/$escaped_new_domain/g
 cp $artifact_dir/$new_domain.wp-config.php $newsite_dir/wp-config.php || exit $?
 
 # Update new domain's db
