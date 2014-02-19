@@ -142,7 +142,7 @@ if ( $missing_arg ) {
 
 // new args array
 $args = array(
-	'verbose' => false,
+	'verbose' => true,
 	'dry_run' => false
 );
 
@@ -167,6 +167,11 @@ foreach( $options as $key => $value ) {
 	$key = str_replace( '-', '_', $key );
 
 	$args[ $key ] = $value;
+}
+
+if ($args['verbose']) {
+    echo "Arguments: ";
+    var_dump($args);
 }
 
 // modify the log output
