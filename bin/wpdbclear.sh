@@ -23,8 +23,8 @@ if [[ ! -f $4 ]]; then
     exit 1
 fi
 
-escaped_old_domain=$(echo $1 | sed 's/[]\/()$*.^|[]/\\\\&/g')
-escaped_new_domain=$(echo $2 | sed 's/[\/&]/\\\\&/g')
+old_domain=$1
+new_domain=$2
 wp_config_path=$3
 db_to_import_path=$4
 
@@ -41,4 +41,4 @@ echo "Deleted $db_name and recreated it!"
 mysql -u $db_user -p"$db_pass" -h $db_host $db_name < $db_to_import_path || exit $?
 
 # Fix the urls
-$bin_dir/search-replace-db/srdb.cli.php -u $db_user -p"$db_pass" -h $db_host -n $db_name -s $escaped_old_domain -r $escaped_new_domain || exit $?
+$bin_dir/search-replace-db/srdb.cli.php -v -u $db_user -p"$db_pass" -h $db_host -n $db_name -s $old_domain -r $new_domain || exit $?
