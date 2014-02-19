@@ -623,17 +623,13 @@ class icit_srdb {
 	 * @return array	The original array with all elements replaced as needed.
 	 */
 	public function recursive_unserialize_replace( $from = '', $to = '', $data = '', $serialised = false ) {
-global $debug;
 		// some unserialised data cannot be re-serialised eg. SimpleXMLElements
 		try {
-if ($debug) var_dump(unserialize( $data ));
 			if ( is_string( $data ) && ( $unserialized = @unserialize( $data ) ) !== false ) {
-if ($debug) echo "Going to recursive_unserialize_replace\n";
 				$data = $this->recursive_unserialize_replace( $from, $to, $unserialized, true );
 			}
 
 			elseif ( is_array( $data ) ) {
-if ($debug) echo "Is array\n";
 				$_tmp = array( );
 				foreach ( $data as $key => $value ) {
 					$_tmp[ $key ] = $this->recursive_unserialize_replace( $from, $to, $value, false );
@@ -645,7 +641,6 @@ if ($debug) echo "Is array\n";
 
 			// Submitted by Tina Matter
 			elseif ( is_object( $data ) ) {
-if ($debug) echo "Object\n";
 				// $data_class = get_class( $data );
 				$_tmp = $data; // new $data_class( );
 				$props = get_object_vars( $data );
@@ -658,7 +653,6 @@ if ($debug) echo "Object\n";
 			}
 
 			else {
-if ($debug) echo "other\n";
 				if ( is_string( $data ) ) {
 					$data = $this->str_replace( $from, $to, $data );
 
@@ -807,7 +801,7 @@ if ($debug) echo "other\n";
 							// include cols
 							if ( ! empty( $this->include_cols ) && ! in_array( $column, $this->include_cols ) )
 								continue;
-if ($table == 'wp_petandctoptions' && $new_table_report[ 'rows' ] == '383'){ echo "HOLY FUCKING SHIT! ". var_export($data_to_fix, true) ."\n"; global $debug;$debug=true;}
+
 							// Run a search replace on the data that'll respect the serialisation.
 							$edited_data = $this->recursive_unserialize_replace( $search, $replace, $data_to_fix );
 
